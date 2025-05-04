@@ -1,3 +1,451 @@
-<h>블로그</h>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모자이크 이미지 편집기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #image-canvas {
+            border: 2px dashed #ccc;
+            margin-bottom: 20px;
+            max-width: 100%;
+            height: auto;
+            cursor: crosshair;
+            touch-action: none; /* 모바일에서 스크롤 방지 */
+        }
+        #preview-canvas {
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+        }
+        #canvas-container { /* 캔버스와 선택 영역을 묶는 컨테이너 */
+            position: relative; /* selection-box의 absolute 기준점 */
+            display: inline-block; /* 크기 자동 조정 및 다른 요소와의 배치 용이성 */
+        }
+        .selection-box {
+            position: absolute;  /* canvas-container를 기준으로 움직임 */
+            border: 2px dashed blue;
+            background-color: rgba(0, 0, 255, 0.1);
+            pointer-events: none;  /* 클릭 이벤트 무시. 캔버스 클릭을 가리지 않도록. */
+            display: none;      /* 처음엔 숨김 */
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="container mx-auto p-8 bg-white rounded-lg shadow-md">
+        <h1 class="text-3xl font-semibold text-blue-600 text-center mb-6">모자이크 이미지 편집기</h1>
+        <div class="mb-6">
+            <label for="image-upload" class="inline-flex items-center justify-center px-5 py-3 bg-blue-600 text-white font-medium rounded-md shadow-md cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors">
+                <span>이미지 업로드</span>
+                <input type="file" id="image-upload" accept="image/*" class="hidden">
+            </label>
+            <p id="file-name" class="mt-2 text-sm text-gray-500"></p>
+            <div id="canvas-container">
+                <canvas id="image-canvas" class="mt-4"></canvas>
+                <div id="selection-box" class="selection-box"></div>
+            </div>
+        </div>
 
-<P style="color: blue:">반갑습니다.</P>
+        <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <label for="start-x" class="block text-gray-700 text-sm font-bold mb-2">시작 X:</label>
+                <input type="number" id="start-x" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+            </div>
+            <div>
+                <label for="start-y" class="block text-gray-700 text-sm font-bold mb-2">시작 Y:</label>
+                <input type="number" id="start-y" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+            </div>
+            <div>
+                <label for="end-x" class="block text-gray-700 text-sm font-bold mb-2">끝 X:</label>
+                <input type="number" id="end-x" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+            </div>
+            <div>
+                <label for="end-y" class="block text-gray-700 text-sm font-bold mb-2">끝 Y:</label>
+                <input type="number" id="end-y" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+            </div>
+            <div>
+                <label for="block-size" class="block text-gray-700 text-sm font-bold mb-2">블록 크기:</label>
+                <input type="number" id="block-size" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="10">
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="apply-mosaic" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">모자이크 적용</button>
+            <button id="reset-image" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">이미지 리셋</button>
+            <button id="download-image" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">다운로드</button>
+            <button id="toggle-effect" data-effect="mosaic" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">모자이크</button>
+        </div>
+
+        <canvas id="preview-canvas"></canvas>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('image-upload');
+        const imageCanvas = document.getElementById('image-canvas');
+        const previewCanvas = document.getElementById('preview-canvas');
+        const ctx = imageCanvas.getContext('2d');
+        const previewCtx = previewCanvas.getContext('2d');
+        const startXInput = document.getElementById('start-x');
+        const startYInput = document.getElementById('start-y');
+        const endXInput = document.getElementById('end-x');
+        const endYInput = document.getElementById('end-y');
+        const blockSizeInput = document.getElementById('block-size');
+        const applyMosaicButton = document.getElementById('apply-mosaic');
+        const resetButton = document.getElementById('reset-image');
+        const fileNameDisplay = document.getElementById('file-name');
+        const selectionBox = document.getElementById('selection-box');
+        const downloadButton = document.getElementById('download-image');
+        const toggleEffectButton = document.getElementById('toggle-effect');
+
+        let originalImage = new Image();
+        let isImageLoaded = false;
+        let originalImageWidth = 0;
+        let originalImageHeight = 0;
+        let selectionStartX = 0;
+        let selectionStartY = 0;
+        let isSelecting = false;
+        let currentEffect = 'mosaic'; // 'mosaic' or 'blur'
+
+
+        function loadImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            fileNameDisplay.textContent = `선택된 파일: ${file.name}`;
+
+            reader.onload = function(e) {
+                originalImage.src = e.target.result;
+                originalImage.onload = () => {
+                    isImageLoaded = true;
+                    originalImageWidth = originalImage.width;
+                    originalImageHeight = originalImage.height;
+                    imageCanvas.width = originalImageWidth;
+                    imageCanvas.height = originalImageHeight;
+                    previewCanvas.width = originalImageWidth;
+                    previewCanvas.height = originalImageHeight;
+                    ctx.drawImage(originalImage, 0, 0, originalImageWidth, originalImageHeight);
+                    applyMosaicButton.disabled = false;
+                    resetButton.disabled = false;
+                    downloadButton.disabled = false;
+                };
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function mosaicImage() {
+            if (!isImageLoaded) return;
+
+            const startX = parseInt(startXInput.value);
+            const startY = parseInt(startYInput.value);
+            const endX = parseInt(endXInput.value);
+            const endY = parseInt(endYInput.value);
+            const blockSize = parseInt(blockSizeInput.value);
+
+
+            if (endX > originalImageWidth || endY > originalImageHeight) {
+                alert("모자이크 영역이 이미지 크기를 벗어났습니다.");
+                return;
+            }
+
+            const imgData = ctx.getImageData(0, 0, originalImageWidth, originalImageHeight);
+            const data = imgData.data;
+
+            const mosaicData = new Uint8ClampedArray(data.length);
+            for (let y = 0; y < originalImageHeight; y += blockSize) {
+                for (let x = 0; x < originalImageWidth; x += blockSize) {
+                    if (x >= startX && x < endX && y >= startY && y < endY) {
+                        let r = 0, g = 0, b = 0;
+                        let count = 0;
+                        for (let i = 0; i < blockSize && x + i < originalImageWidth; i++) {
+                            for (let j = 0; j < blockSize && y + j < originalImageHeight; j++) {
+                                const pixelIndex = ((x + i) + (y + j) * originalImageWidth) * 4;
+                                r += data[pixelIndex];
+                                g += data[pixelIndex + 1];
+                                b += data[pixelIndex + 2];
+                                count++;
+                            }
+                        }
+                        r = Math.round(r / count);
+                        g = Math.round(g / count);
+                        b = Math.round(b / count);
+                        for (let i = 0; i < blockSize && x + i < originalImageWidth; i++) {
+                            for (let j = 0; j < blockSize && y + j < originalImageHeight; j++) {
+                                const pixelIndex = ((x + i) + (y + j) * originalImageWidth) * 4;
+                                mosaicData[pixelIndex] = r;
+                                mosaicData[pixelIndex + 1] = g;
+                                mosaicData[pixelIndex + 2] = b;
+                                mosaicData[pixelIndex + 3] = 255;
+                            }
+                        }
+                    } else {
+                        for (let i = 0; i < blockSize && x + i < originalImageWidth; i++) {
+                            for (let j = 0; j < blockSize && y + j < originalImageHeight; j++) {
+                                const pixelIndex = ((x + i) + (y + j) * originalImageWidth) * 4;
+                                mosaicData[pixelIndex] = data[pixelIndex];
+                                mosaicData[pixelIndex + 1] = data[pixelIndex+1];
+                                mosaicData[pixelIndex + 2] = data[pixelIndex+2];
+                                mosaicData[pixelIndex + 3] = data[pixelIndex + 3];
+                            }
+                        }
+                    }
+                }
+            }
+            const mosaicImageData = new ImageData(mosaicData, originalImageWidth, originalImageHeight);
+            previewCtx.putImageData(mosaicImageData, 0, 0);
+        }
+
+        function blurImage() {
+            if (!isImageLoaded) return;
+
+            const startX = parseInt(startXInput.value);
+            const startY = parseInt(startYInput.value);
+            const endX = parseInt(endXInput.value);
+            const endY = parseInt(endYInput.value);
+            const blurRadius = parseInt(blockSizeInput.value); // Use blockSize as blur radius
+
+            if (endX > originalImageWidth || endY > originalImageHeight) {
+                alert("블러 영역이 이미지 크기를 벗어났습니다.");
+                return;
+            }
+
+            const imgData = ctx.getImageData(0, 0, originalImageWidth, originalImageHeight);
+            const data = imgData.data;
+
+            const blurredData = new Uint8ClampedArray(data.length);
+
+            for (let y = 0; y < originalImageHeight; y++) {
+                for (let x = 0; x < originalImageWidth; x++) {
+                    if (x >= startX && x < endX && y >= startY && y < endY) {
+                        let r = 0, g = 0, b = 0;
+                        let count = 0;
+
+                        // 주변 픽셀 평균값 계산
+                        for (let i = -blurRadius; i <= blurRadius; i++) {
+                            for (let j = -blurRadius; j <= blurRadius; j++) {
+                                const nx = x + i;
+                                const ny = y + j;
+
+                                if (nx >= 0 && nx < originalImageWidth && ny >= 0 && ny < originalImageHeight) {
+                                    const pixelIndex = (nx + ny * originalImageWidth) * 4;
+                                    r += data[pixelIndex];
+                                    g += data[pixelIndex + 1];
+                                    b += data[pixelIndex + 2];
+                                    count++;
+                                }
+                            }
+                        }
+                        r = Math.round(r / count);
+                        g = Math.round(g / count);
+                        b = Math.round(b / count);
+
+                        const pixelIndex = (x + y * originalImageWidth) * 4;
+                        blurredData[pixelIndex] = r;
+                        blurredData[pixelIndex + 1] = g;
+                        blurredData[pixelIndex + 2] = b;
+                        blurredData[pixelIndex + 3] = 255;
+                    } else {
+                        const pixelIndex = (x + y * originalImageWidth) * 4;
+                        blurredData[pixelIndex] = data[pixelIndex];
+                        blurredData[pixelIndex + 1] = data[pixelIndex + 1];
+                        blurredData[pixelIndex + 2] = data[pixelIndex + 2];
+                        blurredData[pixelIndex + 3] = data[pixelIndex + 3];
+                    }
+                }
+            }
+            const blurredImageData = new ImageData(blurredData, originalImageWidth, originalImageHeight);
+            previewCtx.putImageData(blurredImageData, 0, 0);
+        }
+
+
+
+        function resetImage() {
+            if (!isImageLoaded) return;
+            ctx.drawImage(originalImage, 0, 0, originalImageWidth, originalImageHeight);
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            startXInput.value = 0;
+            startYInput.value = 0;
+            endXInput.value = 0;
+            endYInput.value = 0;
+            blockSizeInput.value = 10;
+            selectionBox.style.display = 'none';
+            isSelecting = false;
+        }
+
+        imageUpload.addEventListener('change', loadImage);
+        applyMosaicButton.addEventListener('click', () => {
+            if (currentEffect === 'mosaic') {
+                mosaicImage();
+            } else {
+                blurImage();
+            }
+        });
+        resetButton.addEventListener('click', resetImage);
+        downloadButton.addEventListener('click', () => {
+            if (!isImageLoaded) return;
+            const dataURL = previewCanvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'edited_image.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        toggleEffectButton.addEventListener('click', () => {
+            currentEffect = currentEffect === 'mosaic' ? 'blur' : 'mosaic';
+            toggleEffectButton.textContent = currentEffect === 'mosaic' ? '모자이크' : '블러';
+            toggleEffectButton.classList.toggle('bg-purple-500', currentEffect === 'mosaic');
+            toggleEffectButton.classList.toggle('bg-orange-500', currentEffect === 'blur');
+        });
+
+
+        // --- UI 개선: 마우스 드래그로 영역 선택 ---
+        imageCanvas.addEventListener('mousedown', (e) => {
+            if (!isImageLoaded) return;
+            isSelecting = true;
+            const rect = imageCanvas.getBoundingClientRect();
+            selectionStartX = e.clientX - rect.left;
+            selectionStartY = e.clientY - rect.top;
+            selectionBox.style.left = `${selectionStartX}px`;
+            selectionBox.style.top = `${selectionStartY}px`;
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+            selectionBox.style.display = 'block';
+        });
+
+        imageCanvas.addEventListener('mousemove', (e) => {
+            if (!isSelecting) return;
+            const rect = imageCanvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            const width = currentX - selectionStartX;
+            const height = currentY - selectionStartY;
+            const x1 = Math.min(selectionStartX, currentX);
+            const y1 = Math.min(selectionStartY, currentY);
+
+            selectionBox.style.left = `${x1}px`;
+            selectionBox.style.top = `${y1}px`;
+            selectionBox.style.width = `${Math.abs(width)}px`;
+            selectionBox.style.height = `${Math.abs(height)}px`;
+        });
+
+        imageCanvas.addEventListener('mouseup', (e) => {
+            if (!isSelecting) return;
+            isSelecting = false;
+            const rect = imageCanvas.getBoundingClientRect();
+            const endX = e.clientX - rect.left;
+            const endY = e.clientY - rect.top;
+            const x1 = Math.min(selectionStartX, endX);
+            const y1 = Math.min(selectionStartY, endY);
+            const x2 = Math.max(selectionStartX, endX);
+            const y2 = Math.max(selectionStartY, endY);
+
+            startXInput.value = Math.round(x1);
+            startYInput.value = Math.round(y1);
+            endXInput.value = Math.round(x2);
+            endYInput.value = Math.round(y2);
+            selectionBox.style.left = `${x1}px`;
+            selectionBox.style.top = `${y1}px`;
+            selectionBox.style.width = `${Math.abs(x2 - x1)}px`;
+            selectionBox.style.height = `${Math.abs(y2 - y1)}px`;
+        });
+
+        imageCanvas.addEventListener('mouseleave', (e) => {
+            if (isSelecting) {
+                isSelecting = false;
+                const rect = imageCanvas.getBoundingClientRect();
+                const endX = e.clientX - rect.left;
+                const endY = e.clientY - rect.top;
+                const x1 = Math.min(selectionStartX, endX);
+                const y1 = Math.min(selectionStartY, endY);
+                const x2 = Math.max(selectionStartX, endX);
+                const y2 = Math.max(selectionStartY, endY);
+                startXInput.value = Math.round(x1);
+                startYInput.value = Math.round(y1);
+                endXInput.value = Math.round(x2);
+                endYInput.value = Math.round(y2);
+                selectionBox.style.display = 'none';
+            }
+        });
+
+        // --- 모바일 대응: 터치 이벤트 처리 ---
+        imageCanvas.addEventListener('touchstart', (e) => {
+            if (!isImageLoaded) return;
+            isSelecting = true;
+            const rect = imageCanvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            const touchY = e.touches[0].clientY - rect.top;
+            selectionStartX = touchX;
+            selectionStartY = touchY;
+            selectionBox.style.left = `${selectionStartX}px`;
+            selectionBox.style.top = `${selectionStartY}px`;
+            selectionBox.style.width = '0px';
+            selectionBox.style.height = '0px';
+            selectionBox.style.display = 'block';
+        });
+
+        imageCanvas.addEventListener('touchmove', (e) => {
+            if (!isSelecting) return;
+            const rect = imageCanvas.getBoundingClientRect();
+            const touchX = e.touches[0].clientX - rect.left;
+            const touchY = e.touches[0].clientY - rect.top;
+            const width = touchX - selectionStartX;
+            const height = touchY - selectionStartY;
+             let x1 = selectionStartX;
+            let y1 = selectionStartY;
+
+            if (width < 0) {
+                x1 = touchX;
+            }
+            if (height < 0) {
+                y1 = touchY;
+            }
+            selectionBox.style.left = `${x1}px`;
+            selectionBox.style.top = `${y1}px`;
+            selectionBox.style.width = `${Math.abs(width)}px`;
+            selectionBox.style.height = `${Math.abs(height)}px`;
+        });
+
+        imageCanvas.addEventListener('touchend', (e) => {
+            if (!isSelecting) return;
+            isSelecting = false;
+             const rect = imageCanvas.getBoundingClientRect();
+            const endX = e.changedTouches[0].clientX - rect.left;
+            const endY = e.changedTouches[0].clientY - rect.top;
+            let width = endX - selectionStartX;
+            let height = endY - selectionStartY;
+            let x1 = selectionStartX;
+            let y1 = selectionStartY;
+
+             if (width < 0) {
+                x1 = endX;
+            }
+            if (height < 0) {
+                y1 = endY;
+            }
+
+            startXInput.value = Math.round(x1);
+            startYInput.value = Math.round(y1);
+            endXInput.value = Math.round(endX);
+            endYInput.value = Math.round(endY);
+            selectionBox.style.left = `${x1}px`;
+            selectionBox.style.top = `${y1}px`;
+            selectionBox.style.width = `${Math.abs(width)}px`;
+            selectionBox.style.height = `${Math.abs(height)}px`;
+        });
+    </script>
+</body>
+</html>
