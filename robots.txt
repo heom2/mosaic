@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://pixelmosaic.github.io/mosaic/sitemap.xml
