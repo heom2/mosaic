@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>모자이크 이미지 편집기</title>
+    <title>무료 이미지 모자이크 편집기 - PixelMosaic</title>
 
-    <!-- 🔽 SEO 메타 태그 추가 -->
-    <meta name="description" content="이미지에 모자이크나 블러 처리를 손쉽게 적용할 수 있는 무료 웹사이트입니다.">
-    <meta name="keywords" content="모자이크, 블러, 이미지 모자이크, 사진 블러, 얼굴 가리기, 개인정보 보호, 온라인 사진 편집기">
+    <meta name="description" content="PixelMosaic은 무료로 이미지를 모자이크하거나 블러 처리할 수 있는 간편한 온라인 편집기입니다. 설치 없이 바로 사용해 보세요. 얼굴 가리기, 개인 정보 보호에 최적화되어 있습니다.">
+    <meta name="keywords" content="모자이크, 블러, 이미지 모자이크, 사진 블러, 얼굴 가리기, 개인정보 보호, 온라인 사진 편집기, 무료 모자이크, 무료 블러, 쉬운 이미지 편집, 온라인 이미지 편집기, 간편 이미지 편집">
     <meta name="robots" content="index, follow">
     <meta name="author" content="PixelMosaic">
-    <!-- 🔼 여기까지 -->
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta property="og:title" content="무료 이미지 모자이크 편집기 - PixelMosaic">
+    <meta property="og:description" content="PixelMosaic은 무료로 이미지를 모자이크하거나 블러 처리할 수 있는 간편한 온라인 편집기입니다. 설치 없이 바로 사용해 보세요. 얼굴 가리기, 개인 정보 보호에 최적화되어 있습니다.">
+    <meta property="og:image" content="URL_TO_YOUR_IMAGE"> <meta property="og:url" content="https://yourwebsite.com/pixelmosaic"> <meta property="og:type" content="website">
+
+    <link rel="canonical" href="https://yourwebsite.com/pixelmosaic"> <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -25,7 +27,7 @@
             max-width: 100%;
             height: auto;
             cursor: crosshair;
-            touch-action: none; /* 모바일에서 스크롤 방지 */
+            touch-action: none;
         }
         #preview-canvas {
             border: 1px solid #ddd;
@@ -33,16 +35,16 @@
             max-width: 100%;
             height: auto;
         }
-        #canvas-container { /* 캔버스와 선택 영역을 묶는 컨테이너 */
-            position: relative; /* selection-box의 absolute 기준점 */
-            display: inline-block; /* 크기 자동 조정 및 다른 요소와의 배치 용이성 */
+        #canvas-container {
+            position: relative;
+            display: inline-block;
         }
         .selection-box {
-            position: absolute;  /* canvas-container를 기준으로 움직임 */
+            position: absolute;
             border: 2px dashed blue;
             background-color: rgba(0, 0, 255, 0.1);
-            pointer-events: none;  /* 클릭 이벤트 무시. 캔버스 클릭을 가리지 않도록. */
-            display: none;      /* 처음엔 숨김 */
+            pointer-events: none;
+            display: none;
         }
         .button-group {
             display: flex;
@@ -54,7 +56,13 @@
 </head>
 <body class="bg-gray-100 p-6">
     <div class="container mx-auto p-8 bg-white rounded-lg shadow-md">
-        <h1 class="text-3xl font-semibold text-blue-600 text-center mb-6">모자이크 이미지 편집기</h1>
+        <h1 class="text-3xl font-semibold text-blue-600 text-center mb-6">PixelMosaic 이미지 편집기</h1>
+        <p class="mb-6 text-gray-700">
+            PixelMosaic은 누구나 무료로 이미지를 모자이크 처리할 수 있는 온라인 편집기입니다.
+        </p>
+        <p class="mb-6 text-gray-700">
+            얼굴 가리기, 개인 정보 보호 등 다양한 용도로 활용해 보세요.
+        </p>
         <div class="mb-6">
             <label for="image-upload" class="inline-flex items-center justify-center px-5 py-3 bg-blue-600 text-white font-medium rounded-md shadow-md cursor-pointer hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors">
                 <span>이미지 업로드</span>
@@ -62,43 +70,42 @@
             </label>
             <p id="file-name" class="mt-2 text-sm text-gray-500"></p>
             <div id="canvas-container">
-                <canvas id="image-canvas" class="mt-4"></canvas>
-                <div id="selection-box" class="selection-box"></div>
+                <canvas id="image-canvas" class="mt-4" aria-label="이미지 편집 영역"></canvas> <div id="selection-box" class="selection-box"></div>
             </div>
         </div>
 
         <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
                 <label for="start-x" class="block text-gray-700 text-sm font-bold mb-2">시작 X:</label>
-                <input type="number" id="start-x" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+                <input type="number" id="start-x" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly aria-label="모자이크 시작 X 좌표">
             </div>
             <div>
                 <label for="start-y" class="block text-gray-700 text-sm font-bold mb-2">시작 Y:</label>
-                <input type="number" id="start-y" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+                <input type="number" id="start-y" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly aria-label="모자이크 시작 Y 좌표">
             </div>
             <div>
                 <label for="end-x" class="block text-gray-700 text-sm font-bold mb-2">끝 X:</label>
-                <input type="number" id="end-x" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+                <input type="number" id="end-x" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly aria-label="모자이크 끝 X 좌표">
             </div>
             <div>
                 <label for="end-y" class="block text-gray-700 text-sm font-bold mb-2">끝 Y:</label>
-                <input type="number" id="end-y" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly>
+                <input type="number" id="end-y" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="0" readonly aria-label="모자이크 끝 Y 좌표">
             </div>
             <div>
                 <label for="block-size" class="block text-gray-700 text-sm font-bold mb-2">블록 크기:</label>
-                <input type="number" id="block-size" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="10">
+                <input type="number" id="block-size" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="10" aria-label="모자이크 블록 크기">
             </div>
         </div>
 
         <div class="button-group">
-            <button id="apply-mosaic" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">모자이크 적용</button>
-            <button id="reset-image" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">이미지 리셋</button>
-            <button id="download-image" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">다운로드</button>
-            <button id="toggle-effect" data-effect="mosaic" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">모자이크</button>
+            <button id="apply-mosaic" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" aria-label="모자이크 적용">모자이크 적용</button>
+            <button id="reset-image" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" aria-label="이미지 리셋">이미지 리셋</button>
+            <button id="download-image" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" aria-label="이미지 다운로드">다운로드</button>
+             <button id="toggle-effect" data-effect="mosaic" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" aria-label="모자이크/블러 효과 전환">모자이크</button>
         </div>
 
-        <canvas id="preview-canvas"></canvas>
-    </div>
+        <canvas id="preview-canvas" aria-label="결과 미리보기"></canvas>
+         <p class="mt-4 text-sm text-gray-600"><strong>참고:</strong> 업로드된 이미지는 서버에 저장되지 않으며, 모든 작업은 사용자의 브라우저에서 로컬로 처리됩니다.</p> </div>
 
     <script>
         const imageUpload = document.getElementById('image-upload');
@@ -125,8 +132,7 @@
         let selectionStartX = 0;
         let selectionStartY = 0;
         let isSelecting = false;
-        let currentEffect = 'mosaic'; // 'mosaic' or 'blur'
-
+        let currentEffect = 'mosaic';
 
         function loadImage(event) {
             const file = event.target.files[0];
@@ -223,7 +229,7 @@
             const startY = parseInt(startYInput.value);
             const endX = parseInt(endXInput.value);
             const endY = parseInt(endYInput.value);
-            const blurRadius = parseInt(blockSizeInput.value); // Use blockSize as blur radius
+            const blurRadius = parseInt(blockSizeInput.value);
 
             if (endX > originalImageWidth || endY > originalImageHeight) {
                 alert("블러 영역이 이미지 크기를 벗어났습니다.");
@@ -241,7 +247,6 @@
                         let r = 0, g = 0, b = 0;
                         let count = 0;
 
-                        // 주변 픽셀 평균값 계산
                         for (let i = -blurRadius; i <= blurRadius; i++) {
                             for (let j = -blurRadius; j <= blurRadius; j++) {
                                 const nx = x + i;
@@ -278,8 +283,6 @@
             previewCtx.putImageData(blurredImageData, 0, 0);
         }
 
-
-
         function resetImage() {
             if (!isImageLoaded) return;
             ctx.drawImage(originalImage, 0, 0, originalImageWidth, originalImageHeight);
@@ -312,14 +315,12 @@
             a.click();
             document.body.removeChild(a);
         });
-
         toggleEffectButton.addEventListener('click', () => {
             currentEffect = currentEffect === 'mosaic' ? 'blur' : 'mosaic';
             toggleEffectButton.textContent = currentEffect === 'mosaic' ? '모자이크' : '블러';
             toggleEffectButton.classList.toggle('bg-purple-500', currentEffect === 'mosaic');
             toggleEffectButton.classList.toggle('bg-orange-500', currentEffect === 'blur');
         });
-
 
         // --- UI 개선: 마우스 드래그로 영역 선택 ---
         imageCanvas.addEventListener('mousedown', (e) => {
@@ -413,7 +414,7 @@
             const touchY = e.touches[0].clientY - rect.top;
             const width = touchX - selectionStartX;
             const height = touchY - selectionStartY;
-             let x1 = selectionStartX;
+            let x1 = selectionStartX;
             let y1 = selectionStartY;
 
             if (width < 0) {
@@ -431,7 +432,7 @@
         imageCanvas.addEventListener('touchend', (e) => {
             if (!isSelecting) return;
             isSelecting = false;
-             const rect = imageCanvas.getBoundingClientRect();
+            const rect = imageCanvas.getBoundingClientRect();
             const endX = e.changedTouches[0].clientX - rect.left;
             const endY = e.changedTouches[0].clientY - rect.top;
             let width = endX - selectionStartX;
@@ -439,7 +440,7 @@
             let x1 = selectionStartX;
             let y1 = selectionStartY;
 
-             if (width < 0) {
+            if (width < 0) {
                 x1 = endX;
             }
             if (height < 0) {
